@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+/* Class-based dark mode: toggling `.dark` on <html> activates dark: utilities */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html { background-color: #f9fafb; }
+  html.dark { background-color: #0b1020; color-scheme: dark; }
+
+  /* Native <select> trigger + option lists in dark mode (options can't take Tailwind dark: variants) */
+  html.dark select,
+  html.dark option {
+    background-color: #1f2937; /* gray-800 */
+    color: #e5e7eb;            /* gray-200 */
+  }
+}
+
+@media print {
+  aside, .no-print { display: none !important; }
+  main { overflow: visible !important; }
+  html, body { background: #fff !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
