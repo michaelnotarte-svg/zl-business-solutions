@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import { getCompanyName, POWERED_BY } from '../lib/settings'
 
 const NAV = [
   { to: '/snapshot',   label: 'Daily Snapshot', icon: '📊' },
@@ -19,6 +20,7 @@ export default function Layout() {
   const { profile, isAdmin, canAudit, signOut, locations, activeLocation, setActiveLocation } = useAuth()
   const [open, setOpen] = useState(false) // mobile drawer
   const nav = NAV.filter((n) => (!n.adminOnly || isAdmin) && (!n.auditOnly || canAudit))
+  const companyName = getCompanyName()
 
   const BranchControl = isAdmin ? (
     <select
@@ -40,7 +42,7 @@ export default function Layout() {
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <button onClick={() => setOpen(true)} aria-label="Open menu" className="text-2xl leading-none text-gray-600 dark:text-gray-300">☰</button>
-        <p className="font-bold text-gray-800 dark:text-gray-100">ZL Business Solutions</p>
+        <p className="font-bold text-gray-800 dark:text-gray-100 truncate">{companyName}</p>
         <div className="ml-auto">{BranchControl}</div>
       </header>
 
@@ -56,8 +58,8 @@ export default function Layout() {
         <div className="px-5 py-5 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">ZL</p>
-              <p className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">Business Solutions</p>
+              <p className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">{companyName}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">{POWERED_BY}</p>
             </div>
             <button onClick={() => setOpen(false)} aria-label="Close menu" className="md:hidden text-xl leading-none text-gray-400 dark:text-gray-500">✕</button>
           </div>

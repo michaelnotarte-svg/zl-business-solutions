@@ -8,8 +8,9 @@ import {
   getTheme, setTheme,
   getCurrency, setCurrency,
   getBusiness, setBusiness,
+  getBranding, setBranding, getCompanyName,
   getThresholds, setThresholds,
-  money,
+  money, POWERED_BY,
 } from '../lib/settings'
 
 const TABS = ['Appearance', 'Business', 'Data', 'About']
@@ -27,13 +28,15 @@ const DATA_LISTS = [
 
 export default function Settings() {
   const { isAdmin, activeLocation } = useAuth()
-  const tabs = isAdmin ? [...TABS, 'Users'] : TABS
+  const tabs = isAdmin ? [...TABS.slice(0, 2), 'Branding', ...TABS.slice(2), 'Users'] : TABS
   const [tab, setTab] = useState('Appearance')
 
   const [theme, setThemeState] = useState(getTheme())
   const [currency, setCurrencyState] = useState(getCurrency())
   const [business, setBusinessState] = useState(getBusiness(activeLocation))
   const [savedBiz, setSavedBiz] = useState(false)
+  const [branding, setBrandingState] = useState(getBranding())
+  const [savedBrand, setSavedBrand] = useState(false)
   const [thresh, setThreshState] = useState(getThresholds(activeLocation))
 
   // Re-read per-branch settings when the active branch changes
@@ -69,6 +72,13 @@ export default function Settings() {
 
   function bizField(k, v) {
     setBusinessState((b) => ({ ...b, [k]: v }))
+  }
+
+  function saveBranding(e) {
+    e.preventDefault()
+    setBranding(branding)
+    setSavedBrand(true)
+    setTimeout(() => setSavedBrand(false), 2000)
   }
 
   return (
@@ -164,6 +174,32 @@ export default function Settings() {
         </form>
       )}
 
+      {/* ── Branding (admin only) ── */}
+      {tab === 'Branding' && isAdmin && (
+        <form onSubmit={saveBranding} className="space-y-4 max-w-lg">
+          <Section title="Branding" desc="The app title shown in the sidebar and on the sign-in screen (one identity for the whole app). Logo and theme colors will live here too.">
+            <BizInput
+              label="Company Name"
+              value={branding.companyName ?? ''}
+              onChange={(v) => setBrandingState((b) => ({ ...b, companyName: v }))}
+            />
+            <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">Preview</p>
+              <p className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                {branding.companyName?.trim() || 'ZL Business Solutions'}
+              </p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">{POWERED_BY}</p>
+            </div>
+          </Section>
+          <div className="flex items-center gap-3">
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
+              Save
+            </button>
+            {savedBrand && <span className="text-sm text-green-600">Saved ✓ — reload to update the title</span>}
+          </div>
+        </form>
+      )}
+
       {/* ── Data ── */}
       {tab === 'Data' && (
         <Section title="Manage Lists" desc="Edit the dropdown options used across the app.">
@@ -186,7 +222,7 @@ export default function Settings() {
       {tab === 'About' && (
         <Section title="About" desc="">
           <dl className="text-sm divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <Row k="App" v="ZL Business Solutions" />
+            <Row k="App" v={getCompanyName()} />
             <Row k="Version" v={APP_VERSION} />
             <Row k="Stack" v="React · Vite · Tailwind · Supabase · Vercel" />
             <Row k="Location" v="Iloilo, Philippines" />

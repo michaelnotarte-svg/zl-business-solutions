@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { getCompanyName, POWERED_BY } from '../lib/settings'
 
 // Public portfolio demo account (read the README for details).
 const DEMO_EMAIL = 'demo@zlbs.app'
@@ -37,8 +38,8 @@ export default function Login() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">ZL</p>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Business Solutions</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{getCompanyName()}</h1>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{POWERED_BY}</p>
         </div>
 
         <form onSubmit={handleLogin} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm px-6 py-6 space-y-4">

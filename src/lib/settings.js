@@ -7,10 +7,15 @@ import { supabase } from './supabase'
 const THEME_KEY = 'pos.theme'
 const CURRENCY_KEY = 'pos.currency'
 const BUSINESS_KEY = 'pos.business'
+const BRANDING_KEY = 'pos.branding'   // global: company name, logo, colors (logo/colors added later)
 const ADMIN_KEY = 'pos.admin'
 const THRESH_KEY = 'pos.box_thresholds' // box-based (old 'pos.thresholds' held kg values)
 
 export const APP_VERSION = '0.2.0'
+
+// Default app title until an admin sets the company name, and the fixed credit.
+export const DEFAULT_COMPANY = 'ZL Business Solutions'
+export const POWERED_BY = 'Powered by ZL Solutions'
 
 export const CURRENCY_OPTIONS = [
   { symbol: '₱', label: '₱  Philippine Peso (PHP)' },
@@ -52,6 +57,7 @@ export async function loadSharedSettings() {
       if (r.key === 'currency') localStorage.setItem(CURRENCY_KEY, r.value)
       else if (r.key === 'thresholds') localStorage.setItem(`${THRESH_KEY}.${r.scope}`, JSON.stringify(r.value))
       else if (r.key === 'business') localStorage.setItem(`${BUSINESS_KEY}.${r.scope}`, JSON.stringify(r.value))
+      else if (r.key === 'branding') localStorage.setItem(BRANDING_KEY, JSON.stringify(r.value))
     }
   } catch { /* offline / table missing → fall back to local cache */ }
 }
@@ -94,6 +100,28 @@ export function getBusiness(location) {
 export function setBusiness(obj, location) {
   localStorage.setItem(bizKey(location), JSON.stringify(obj))
   pushSetting(location, 'business', obj)
+}
+
+// ── Branding (global: company name, logo, colors) ────────
+// One identity per deployment, shown as the app title in the sidebar/login.
+// Logo + colors will be added to this same object in a later pass.
+export function getBranding() {
+  try {
+    return JSON.parse(localStorage.getItem(BRANDING_KEY)) || {}
+  } catch {
+    return {}
+  }
+}
+
+export function setBranding(obj) {
+  localStorage.setItem(BRANDING_KEY, JSON.stringify(obj))
+  pushSetting('global', 'branding', obj)
+}
+
+// App title: the configured company name, or the default until one is set.
+export function getCompanyName() {
+  const name = getBranding().companyName
+  return name && name.trim() ? name.trim() : DEFAULT_COMPANY
 }
 
 // ── Admin mode (placeholder for real role-based auth) ────
