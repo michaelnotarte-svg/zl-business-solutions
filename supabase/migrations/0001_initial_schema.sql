@@ -25,6 +25,8 @@ create policy "open_customers" on customers for all using (true) with check (tru
 create table items (
   id         uuid primary key default uuid_generate_v4(),
   name       text not null,
+  base_name  text,
+  brand      text,
   category   text,
   unit       text not null default 'box',
   created_at timestamptz not null default now()
