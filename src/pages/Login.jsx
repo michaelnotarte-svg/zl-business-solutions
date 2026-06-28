@@ -1,11 +1,21 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+// Public portfolio demo account (read the README for details).
+const DEMO_EMAIL = 'demo@zlbs.app'
+const DEMO_PASSWORD = 'ZLdemo2026!'
+
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  function fillDemo() {
+    setEmail(DEMO_EMAIL)
+    setPassword(DEMO_PASSWORD)
+    setError('')
+  }
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -65,9 +75,18 @@ export default function Login() {
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
 
-          <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center">
-            Accounts are created by the administrator.
-          </p>
+          <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
+            <button
+              type="button"
+              onClick={fillDemo}
+              className="w-full text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            >
+              Use demo account
+            </button>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-1">
+              Portfolio demo · {DEMO_EMAIL} / {DEMO_PASSWORD}
+            </p>
+          </div>
         </form>
       </div>
     </div>

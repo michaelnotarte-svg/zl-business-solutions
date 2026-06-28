@@ -4,6 +4,8 @@ A multi-branch business operations webapp — invoicing, inventory, accounts rec
 
 > Demo build. Data is illustrative only.
 
+**Demo login:** `demo@zlbs.app` / `ZLdemo2026!` (or click **Use demo account** on the sign-in screen).
+
 ## Stack
 
 - **Frontend:** React 19 + Vite
