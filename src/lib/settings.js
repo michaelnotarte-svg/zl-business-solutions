@@ -8,6 +8,7 @@ const THEME_KEY = 'pos.theme'
 const CURRENCY_KEY = 'pos.currency'
 const BUSINESS_KEY = 'pos.business'
 const BRANDING_KEY = 'pos.branding'   // global: company name, logo, colors (logo/colors added later)
+const CONFIG_KEY = 'pos.config'       // global: app config flags (multiBranch, defaultLocation)
 const ADMIN_KEY = 'pos.admin'
 const THRESH_KEY = 'pos.box_thresholds' // box-based (old 'pos.thresholds' held kg values)
 
@@ -58,6 +59,7 @@ export async function loadSharedSettings() {
       else if (r.key === 'thresholds') localStorage.setItem(`${THRESH_KEY}.${r.scope}`, JSON.stringify(r.value))
       else if (r.key === 'business') localStorage.setItem(`${BUSINESS_KEY}.${r.scope}`, JSON.stringify(r.value))
       else if (r.key === 'branding') localStorage.setItem(BRANDING_KEY, JSON.stringify(r.value))
+      else if (r.key === 'config') localStorage.setItem(CONFIG_KEY, JSON.stringify(r.value))
     }
   } catch { /* offline / table missing → fall back to local cache */ }
 }
@@ -122,6 +124,26 @@ export function setBranding(obj) {
 export function getCompanyName() {
   const name = getBranding().companyName
   return name && name.trim() ? name.trim() : DEFAULT_COMPANY
+}
+
+// ── App config (global: branch mode) ─────────────────────
+// multiBranch=false → run as a single location (branch switcher hidden,
+// everyone pinned to defaultLocation). Toggle on to manage several branches.
+const CONFIG_DEFAULTS = { multiBranch: false, defaultLocation: '' }
+
+export function getConfig() {
+  try {
+    return { ...CONFIG_DEFAULTS, ...(JSON.parse(localStorage.getItem(CONFIG_KEY)) || {}) }
+  } catch {
+    return { ...CONFIG_DEFAULTS }
+  }
+}
+
+export function setConfig(obj) {
+  const next = { ...getConfig(), ...obj }
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(next))
+  pushSetting('global', 'config', next)
+  return next
 }
 
 // ── Admin mode (placeholder for real role-based auth) ────

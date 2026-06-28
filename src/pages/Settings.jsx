@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import ManageListModal from '../components/ManageListModal'
 import UsersAdmin from '../components/UsersAdmin'
 import { useAuth } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 import {
   APP_VERSION,
   CURRENCY_OPTIONS,
@@ -9,6 +10,7 @@ import {
   getCurrency, setCurrency,
   getBusiness, setBusiness,
   getBranding, setBranding, getCompanyName,
+  getConfig, setConfig,
   getThresholds, setThresholds,
   money, POWERED_BY,
 } from '../lib/settings'
@@ -27,8 +29,8 @@ const DATA_LISTS = [
 ]
 
 export default function Settings() {
-  const { isAdmin, activeLocation } = useAuth()
-  const tabs = isAdmin ? [...TABS.slice(0, 2), 'Branding', ...TABS.slice(2), 'Users'] : TABS
+  const { isAdmin, activeLocation, locations, multiBranch } = useAuth()
+  const tabs = isAdmin ? [...TABS.slice(0, 2), 'Branding', 'Branches', ...TABS.slice(2), 'Users'] : TABS
   const [tab, setTab] = useState('Appearance')
 
   const [theme, setThemeState] = useState(getTheme())
@@ -79,6 +81,30 @@ export default function Settings() {
     setBranding(branding)
     setSavedBrand(true)
     setTimeout(() => setSavedBrand(false), 2000)
+  }
+
+  // ── Branches ──
+  const [cfg, setCfgState] = useState(getConfig())
+  const [branchList, setBranchList] = useState(locations)
+  const [newBranch, setNewBranch] = useState('')
+  const [branchMsg, setBranchMsg] = useState('')
+
+  useEffect(() => { setBranchList(locations) }, [locations])
+
+  function updateCfg(patch) {
+    setCfgState(setConfig(patch))   // setConfig merges + persists, returns the merged object
+  }
+
+  async function addBranch(e) {
+    e.preventDefault()
+    const name = newBranch.trim()
+    if (!name) return
+    if (branchList.includes(name)) { setBranchMsg('That branch already exists.'); return }
+    const { error } = await supabase.from('locations').insert({ name })
+    if (error) { setBranchMsg(error.message); return }
+    setBranchList((l) => [...l, name].sort())
+    setNewBranch('')
+    setBranchMsg('Added ✓ — reload to use it in the branch switcher.')
   }
 
   return (
@@ -134,7 +160,7 @@ export default function Settings() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Preview: <span className="font-semibold text-gray-700 dark:text-gray-200">{money(1234.5)}</span></p>
           </Section>
 
-          <Section title="Stock Level Thresholds" desc={`Per-branch (${activeLocation}). Item-level on-hand #boxes drive the inventory status flags. Sufficient is anything above the Low line.`}>
+          <Section title="Stock Level Thresholds" desc={`${multiBranch ? `Per-branch (${activeLocation}). ` : ''}Item-level on-hand #boxes drive the inventory status flags. Sufficient is anything above the Low line.`}>
             <div className="flex flex-wrap items-end gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">🔴 Critical at/below (boxes)</label>
@@ -155,7 +181,7 @@ export default function Settings() {
       {/* ── Business ── */}
       {tab === 'Business' && (
         <form onSubmit={saveBusiness} className="space-y-4 max-w-lg">
-          <Section title="Business Information" desc={`Per-branch (${activeLocation}). Shown on invoice headers and printouts (future).`}>
+          <Section title="Business Information" desc={`${multiBranch ? `Per-branch (${activeLocation}). ` : ''}Shown on invoice headers and printouts (future).`}>
             <div className="space-y-3">
               <BizInput label="Company Name" value={business.name ?? ''} onChange={(v) => bizField('name', v)} />
               <BizInput label="Address" value={business.address ?? ''} onChange={(v) => bizField('address', v)} />
@@ -198,6 +224,60 @@ export default function Settings() {
             {savedBrand && <span className="text-sm text-green-600">Saved ✓ — reload to update the title</span>}
           </div>
         </form>
+      )}
+
+      {/* ── Branches (admin only) ── */}
+      {tab === 'Branches' && isAdmin && (
+        <div className="space-y-6 max-w-lg">
+          <Section title="Branch mode" desc="Run the app for a single location, or enable multiple branches and switch between them from the sidebar.">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={cfg.multiBranch}
+                onChange={(e) => updateCfg({ multiBranch: e.target.checked })}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-200">Enable multiple branches</span>
+            </label>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Reload after changing this for the sidebar to update.</p>
+          </Section>
+
+          <Section title="Primary branch" desc="The branch used when running single-branch, and the default location for new records.">
+            <select
+              value={cfg.defaultLocation || activeLocation}
+              onChange={(e) => updateCfg({ defaultLocation: e.target.value })}
+              className="w-full max-w-xs border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {(branchList.length ? branchList : [activeLocation]).map((l) => <option key={l}>{l}</option>)}
+            </select>
+          </Section>
+
+          {cfg.multiBranch && (
+            <Section title="Branches" desc="Add the locations you operate. (Renaming/removing a branch is intentionally disabled — records are tagged by branch name.)">
+              <ul className="mb-3 divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                {(branchList.length ? branchList : [activeLocation]).map((l) => (
+                  <li key={l} className="px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 flex items-center gap-2">
+                    📍 {l}{l === (cfg.defaultLocation || activeLocation) && <span className="text-[11px] text-gray-400">· primary</span>}
+                  </li>
+                ))}
+              </ul>
+              <form onSubmit={addBranch} className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">New branch name</label>
+                  <input
+                    type="text"
+                    value={newBranch}
+                    onChange={(e) => { setNewBranch(e.target.value); setBranchMsg('') }}
+                    placeholder="e.g. Bacolod"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Add</button>
+              </form>
+              {branchMsg && <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{branchMsg}</p>}
+            </Section>
+          )}
+        </div>
       )}
 
       {/* ── Data ── */}

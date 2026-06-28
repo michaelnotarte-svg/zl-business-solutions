@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabase'
-import { loadSharedSettings } from './settings'
+import { loadSharedSettings, getConfig } from './settings'
 
 const AuthContext = createContext(null)
 
@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [locations, setLocations] = useState([])
   const [names, setNames] = useState({}) // user id -> display name
+  const [multiBranch, setMultiBranch] = useState(false)
   const [activeLocation, setActiveLocationState] = useState(localStorage.getItem('pos.activeLocation') || 'Iloilo')
 
   useEffect(() => {
@@ -37,19 +38,30 @@ export function AuthProvider({ children }) {
       loadSharedSettings(), // hydrate shared settings into the localStorage cache
     ]).then(([{ data: prof }, { data: locs }, { data: nm }]) => {
       if (!active) return
+      const locNames = (locs ?? []).map((l) => l.name)
       setProfile(prof ?? null)
-      setLocations((locs ?? []).map((l) => l.name))
+      setLocations(locNames)
       setNames(Object.fromEntries((nm ?? []).map((u) => [u.id, u.name])))
-      // Staff are locked to their assigned branch; admin keeps last choice
-      if (prof && !prof.is_admin && prof.location) setActiveLocationState(prof.location)
+
+      // Branch mode (config hydrated by loadSharedSettings above).
+      const cfg = getConfig()
+      const multi = cfg.multiBranch === true
+      setMultiBranch(multi)
+      if (!multi) {
+        // Single-branch: everyone is pinned to the one branch.
+        setActiveLocationState(cfg.defaultLocation || prof?.location || locNames[0] || 'Main')
+      } else if (prof && !prof.is_admin && prof.location) {
+        // Multi-branch: staff are locked to their assigned branch; admin keeps last choice.
+        setActiveLocationState(prof.location)
+      }
       setLoading(false)
     })
     return () => { active = false }
   }, [session?.user?.id])
 
   function setActiveLocation(loc) {
-    // Only admins may switch branches
-    if (!profile?.is_admin) return
+    // Only admins may switch branches, and only when multi-branch is enabled.
+    if (!multiBranch || !profile?.is_admin) return
     localStorage.setItem('pos.activeLocation', loc)
     setActiveLocationState(loc)
   }
@@ -74,6 +86,7 @@ export function AuthProvider({ children }) {
       return need.some((m) => have.includes(m))
     },
     locations,
+    multiBranch,
     activeLocation,
     setActiveLocation,
     signOut: () => supabase.auth.signOut(),

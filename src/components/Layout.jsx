@@ -17,12 +17,13 @@ const NAV = [
 ]
 
 export default function Layout() {
-  const { profile, isAdmin, canAudit, signOut, locations, activeLocation, setActiveLocation } = useAuth()
+  const { profile, isAdmin, canAudit, signOut, locations, multiBranch, activeLocation, setActiveLocation } = useAuth()
   const [open, setOpen] = useState(false) // mobile drawer
   const nav = NAV.filter((n) => (!n.adminOnly || isAdmin) && (!n.auditOnly || canAudit))
   const companyName = getCompanyName()
 
-  const BranchControl = isAdmin ? (
+  // Branch switcher only appears in multi-branch mode; single-branch hides it entirely.
+  const BranchControl = !multiBranch ? null : isAdmin ? (
     <select
       value={activeLocation}
       onChange={(e) => setActiveLocation(e.target.value)}
@@ -43,7 +44,7 @@ export default function Layout() {
       >
         <button onClick={() => setOpen(true)} aria-label="Open menu" className="text-2xl leading-none text-gray-600 dark:text-gray-300">☰</button>
         <p className="font-bold text-gray-800 dark:text-gray-100 truncate">{companyName}</p>
-        <div className="ml-auto">{BranchControl}</div>
+        {BranchControl && <div className="ml-auto">{BranchControl}</div>}
       </header>
 
       {/* Drawer overlay (mobile only) */}
@@ -63,7 +64,7 @@ export default function Layout() {
             </div>
             <button onClick={() => setOpen(false)} aria-label="Close menu" className="md:hidden text-xl leading-none text-gray-400 dark:text-gray-500">✕</button>
           </div>
-          <div className="mt-2">{BranchControl}</div>
+          {BranchControl && <div className="mt-2">{BranchControl}</div>}
         </div>
 
         {/* Nav links */}
